@@ -1,16 +1,13 @@
+# -*- coding: latin-1 -*-
+from hashlib import md5
 
 from django.shortcuts import render, redirect
-
-from app.settings import SMTP_USER, SMTP_PASSWORD, HOST_NAME
-from smtplib import SMTP
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User,Group
 from proyectos.models import *
 
 from app.views import baseContext
-from hashlib import md5
+from app.mail import send_smtp_mail
+
 # Create your views here.
 
 def hashPassword(email):
@@ -19,6 +16,7 @@ def hashPassword(email):
 	return o[:10]
 
 def addClient(p):
+	cliente_group = Group.objects.get(name="cliente")
 	has_fields = (
 		p.has_key('nombre'),
 		p.has_key('apellido'),
@@ -33,12 +31,14 @@ def addClient(p):
 		print hashPassword(p['email'])
 		u.is_staff = False
 		u.is_active = False
+		
 		try:
 			u.save()
 			h = md5(u.email)
 			c = Cliente(user = u, confirm = h.hexdigest())
 			c.clean_fields()
 			c.save(force_insert=True)
+			cliente_group.user_set.add(u)
 			return u
 		except:
 			return False
@@ -64,52 +64,48 @@ def addSolicitud(user,p):
 		s.plazo = plazo
 		s.description = p['descripcion']
 
-		if not user.is_authenticated():
+		if not user.is_active:
 			s.enabled = False
 		else:
 			s.enabled = True
 
-		s.clean_fields()
-		s.clean()
-		s.save()
+		try:
+			s.clean_fields()
+			s.clean()
+			s.save()
+		except:
+			s = False
 		return s
 
-def send_email_notif(u,s):
-	gmail_user = SMTP_USER
-	gmail_pwd = SMTP_PASSWORD 
-	msj = MIMEMultipart('alternative')
-	
-	msj['FROM'] = gmail_user
-	msj['Subjent'] = "cotiwin"
+def sendEmailNewUserNotification(u,s):
 	c = Cliente.objects.get(user=u)
-	m = u"""
+	msj = u'''
 FELICITACIONES %s !!!
 Te has registrado en CotiWin y has creado una nueva solicitud de cotizacion:
 DESCRIPCION:
 %s
 TU CLAVE: %s
 activa tu cuenta yendo al siguiente enlace %sproyectos/activate/%s/%s/
-		""" % (u.username,s.description,hashPassword(u.email),HOST_NAME,u.id,c.confirm)
-	msj.attach(MIMEText(m, 'html', 'UTF-8'))
-	smtpserver = SMTP("smtp.gmail.com",587) 
-	smtpserver.ehlo() 
-	smtpserver.starttls() 
-	smtpserver.ehlo()
-	smtpserver.login(gmail_user, gmail_pwd) 
-	smtpserver.sendmail(gmail_user, u.email, msj.as_string())
-	smtpserver.close()
+		''' % (u.first_name,s.description,hashPassword(u.email),HOST_NAME,u.id,c.confirm)
+	send_smtp_mail(msj,[u.email])
 
-
+def sendEmailNewSolicitudNotification(u,s):
+	msj = u'''
+	%s HAS AÑADIDO UNA NUEVEA SOLICITUD DE COTIZACION !!
+	DESCRIPCION:
+	%s
+		''' % (u.first_name,s.description)
+	send_smtp_mail(msj,[u.email])
 
 def waiting(request):
-	solicitudes = Solicitud.objects.extra(where=["EXTRACT(EPOCH FROM age(NOW(),created)) < 1200"]).all().filter(enabled=True).order_by('-created')
+	solicitudes = Solicitud.objects.extra(where=["EXTRACT(EPOCH FROM age(NOW(),created)) < 1200"]).all().filter(enabled=True).order_by('-created')[:10]
 	cxt = baseContext(request)
 	cxt["right_section"] = "/proyectos/waiting/"
 	cxt.update({'solicitudes':solicitudes})
 	return render(request,'proyectos/waiting.html',cxt)
 
 def sucessful(request):
-	solicitudes = Solicitud.objects.extra(where=["EXTRACT(EPOCH FROM age(NOW(),created)) > 1200"]).all().filter(enabled=True).order_by('-created')
+	solicitudes = Solicitud.objects.extra(where=["EXTRACT(EPOCH FROM age(NOW(),created)) > 1200"]).all().filter(enabled=True).order_by('-created')[:10]
 	cxt = baseContext(request)
 	cxt["right_section"] = "/proyectos/sucessful/"
 	cxt.update({'solicitudes':solicitudes})
@@ -125,16 +121,25 @@ def add(request):
 		u = addClient(post)
 	else:
 		u = request.user
-	if u:
+	if not u.is_active:
 		s = addSolicitud(u,post)
-		send_email_notif(u,s)
+		if s:
+			sendEmailNewUserNotification(u,s)
+	else:
+		s = addSolicitud(u,post)
+		if s:
+			sendEmailNewSolicitudNotification(u,s)
 
 	cxt = baseContext(request)
 	cxt.update({'post':request.POST})
-	if not u.is_authenticated():
-		return render(request,'proyectos/sucess.html',cxt)
+	if s:
+		if not u.is_authenticated():
+			return render(request,'proyectos/sucess.html',cxt)
+		else:
+			return redirect("/proyectos/waiting/")
 	else:
-		return redirect("/proyectos/waiting/")
+		cxt['right_section'] = "#"
+		return render(request,'proyectos/fail.html',cxt)
 
 def activateAccount(request,user_id ,confirm):
 	try:
@@ -142,12 +147,12 @@ def activateAccount(request,user_id ,confirm):
 		c = Cliente.objects.get(user = u)
 	except:
 		u = False
-	if u:
+	if not u.is_active:
 		if c.confirm == confirm:
 			if u:
 				u.is_active = True
 				u.save()
-				Solicitud.objects.all().filter(user = u).update(enabled=True)
+				Solicitud.objects.all().filter(user = u).update(enabled=True,created=datetime.now())
 				return redirect('/login/')
 	else:
 		return redirect("/")

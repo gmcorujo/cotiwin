@@ -8,9 +8,9 @@ def s(url, display):
 def baseContext(request):
 	base = {
 	'menu':[
-			s("/","home"),
-			s("/plataforma/","plataforma"),
-			s("/proyectos/mi/","mis cotizaciones")
+			s("/","Inicio"),
+			s("/plataforma/","Plataforma"),
+			s("/proyectos/mi/","Mis Cotizaciones")
 			],
 	'section':"/",
 	"right_column_menu":[
