@@ -1,0 +1,17 @@
+{% extends 'app/base.html' %}
+{% load staticfiles %}
+
+{% block content  %}
+	{% if not user.is_authenticated %}
+		<h1>Felicitaciones !!!</h1>
+		<h2>Has publicado tu primera solicitud de cotizacion</h2>
+		<p>
+			para poder activar tu cuenta y la solicitud de cotizacion
+			ve a la bandeja de entrada de tu correo electronico, y
+			revisa el mail de activacion de cuenta.
+		</p>
+	{% endif %}
+	{% for k,v in post.items %}
+		<p>{{k}}:<b> {{v}}</b></p>
+	{% endfor %}
+{% endblock %}
