@@ -1,0 +1,79 @@
+{% extends "app/base.html" %}
+{% load staticfiles %}
+
+{% block styles %}
+	<link rel="stylesheet" href="{% static 'css/timepicker.css' %}" media="screen" >
+{% endblock %}
+
+{% block scripts %}
+<script type="text/javascript" src="{% static 'js/jquery-ui-timepicker.js' %}" ></script>
+<script type="text/javascript" src="{% static 'js/jquery-ui-sliderAccess.js' %}" ></script>
+<script type="text/javascript" src="{% static 'js/i18n/jquery-ui-timepicker-es.js' %}" ></script>
+<script type="text/javascript">
+$(document).ready(function(){
+	$(".add_solicitud fieldset .control-group:even").css("background-color","#E5E5E5");
+
+	$.datepicker.setDefaults( $.datepicker.regional[ "es" ] );
+	$("#inputPlazo").datetimepicker();
+})
+</script>
+{% endblock %}
+
+{% block content %}
+	<form class="span8 offset1 form-horizontal add_solicitud" method="POST" action="/proyectos/create/" >
+		<fieldset>
+			{% csrf_token %}
+			<legend>Nueva Cotizacion</legend>
+			{% if not user.is_authenticated %}
+			<div class="control-group">
+				<label class="control-label" for="inputNombre" >Nombre y Apellido</label>
+				<div class="controls">
+					<input type="text" id="inputNombre" name="nombre"  placeholder="Nombres">
+					<input type="text" id="inputApellido" name="apellido"  placeholder="Apellidos">
+				</div>
+				<label class="control-label" for="inputEmail">Email</label>
+				<div class="controls">
+					<input type="text" id="inputEmail" name="email" placeholder="tu@email.com">
+				</div>
+			</div>
+			{% endif %}
+			<div class="control-group">
+				<label class="control-label" for="inputDescripcion">Descripcion</label>
+				<div class="controls">
+					<textarea class="solicitud_field" name="descripcion" id="inputDescripcion" rows="6" placeholder="Descripcion..." ></textarea>
+				</div>
+				<label class="control-label" for="inputAdjunto">Adjunto</label>
+				<div class="controls">
+					<input type="file" name="adjunto" id="inputAdjunto" placeholder="seleccionar..">
+				</div>
+			</div>
+			<div class="control-group">
+				<label class="control-label" for="inputPais">Zona de Interes</label>
+				<div class="controls">
+					<select name="pais" id="inputPais" >
+					{% for p in paises %}
+						<option value="{{ p.id }}" >{{ p }}</option>
+					{% endfor %}
+					</select>
+				</div>
+				<label class="control-label" for="inputCategoria">Categoria</label>
+				<div class="controls">
+					<select name="categoria" id="inputCategoria" >
+					{% for c in categorias %}
+						<option value="{{ c.id }}" >{{ c }}</option>
+					{% endfor %}
+					</select>
+				</div>
+				<label class="control-label" for="inputPlazo">Plazo</label>
+				<div class="controls">
+					<input type="text" name="plazo" id="inputPlazo" />
+				</div>
+			</div>
+			<div class="control-group">
+				<div class="controls">
+					<button type="submit" class="btn" >Enviar</button>
+				</div>
+			</div>
+		</fieldset>
+	</form>
+{% endblock %}

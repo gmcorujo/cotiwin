@@ -1,0 +1,14 @@
+.content{
+	min-height: 540px !important; 
+	border-left: solid #D4D4D4 1px;
+}
+
+.solicitud_field{ width: 450px; }
+.add_solicitud, .control-group {
+ /*border: solid 1px gray;*/ padding: 4px;
+
+	-webkit-border-radius: 4px;
+	-moz-border-radius: 4px;
+	border-radius: 4px;
+}
+.add_solicitud {background-color: #D8D8D8;}

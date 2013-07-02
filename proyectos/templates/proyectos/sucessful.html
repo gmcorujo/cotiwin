@@ -1,0 +1,57 @@
+{% extends 'app/base.html' %}
+{% load staticfiles %}
+{% block styles %}
+<style type="text/css">
+.solicitud{
+	padding: 4px;
+	margin-bottom: 4px;
+	background-color: #D8D8D8;
+	-webkit-border-radius: 4px;
+	-moz-border-radius: 4px;
+	border-radius: 4px;
+}
+</style>
+{% endblock %}
+{% block scripts %}
+<script type="text/javascript">
+	date = new Date();
+	function leftTime(){
+		$(".solicitud").each(function(index){
+			lapse = $(this).attr("time")
+			minutes = lapse/60
+			left = Math.round(20 - minutes)
+			console.log(index,date.getTime(),lapse,minutes,left)
+			console.log(date.getTime());
+			var span = $(this).children("span.label")
+
+			if (left > 0){
+				
+				span.addClass("label-warning")
+				span.text('restan ' + left + ' minutos')
+			}else{
+				span.addClass("label-important")
+				span.text('exitosa');
+			}
+			$(this).attr("time",Number(lapse) + 10)
+		});
+	}
+	$(document).ready(function(){
+		leftTime()
+		setInterval(leftTime,10000);
+	});
+</script>
+{% endblock %}
+
+{% block content %}
+	<p></p>
+	{% for s in solicitudes %}
+		
+		<div class="span5 solicitud" time="{{ s.time_left }}" >
+			<p>{{ s.description }} </p>
+			<p>{{ s.created }}</p>
+			<p>pais: <b>{{ s.pais }}</b> fecha limite: <b>{{ s.plazo }}</b></p>
+			estado: <span class="label">vencida</span>
+		</div>
+		
+	{% endfor %}
+{% endblock %}
